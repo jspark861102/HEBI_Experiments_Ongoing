@@ -1,0 +1,93 @@
+# HEBI Robotics Kits - Arms
+
+This folder contains examples for controlling arm-type configurations such as the 5-DoF and 6-DoF X-Series arm kits.
+
+## Setup
+
+### Load Libraries
+
+These examples make use of a variety of HEBI libraries. In order to load the libraries correctly, please run `startup()` after starting up MATLAB.
+
+### Setup Robot
+
+In order to work with a robot arm, you need to establish communications, and create a matching kinematic model. If you are using a pre-configured link:http://docs.hebi.us/hardware.html#Kits[kit] with the default actuator types as well as default naming conventions, you can simply call `setupArm.m` in the example.
+
+The `kit` variable needs to match your system. Currently the following kits are supported:
+
+:assembly: link:http://docs.hebi.us/resources/kits/assyInstructions
+:kitimg: image:http://docs.hebi.us/resources/kits/images
+:imgsize: width=300px
+
+[width="100%",options="header",cols="1a,1a,2a,1a"]
+|====================
+| Kit Name | Part Number | Description and Info | Image
+
+|`'6dof'`|A-2084-06|
+6 - DoF Arm Kit +
+{assembly}/6-DoF_Arm.pdf[Assembly Instructions]|
+{kitimg}/6-DoF_Arm.PNG[{imgsize}]
+
+|`'5dof'`|A-2084-05|
+5 - DoF Arm Kit +
+{assembly}/5-DoF_Arm.pdf[Assembly Instructions]|
+{kitimg}/5-DoF_Arm.PNG[{imgsize}]
+
+|`'4dof'`|A-2085-04|
+4 - DoF Arm Kit +
+{assembly}/4-DoF_Arm.pdf[Assembly Instructions]|
+{kitimg}/4-DoF_Arm.PNG[{imgsize}]
+
+|`'4dof-scara'`|A-2084-01|
+4 - DoF SCARA Style Arm Kit +
+{assembly}/4-DoF_SCARA-ish_Arm.pdf[Assembly Instructions]|
+{kitimg}/4-DoF_SCARA.JPG[{imgsize}]
+
+|====================
+
+If you are using different actuator types or non-default configurations, you will need to modify the model to match your system. You can find tutorials on defining custom kinematic structures on the online link:http://docs.hebi.us/tools.html#kinematics[kinematics documentation]. The `setupArm.m` function should provide a good starting point.
+
+
+## Examples
+
+At the top of each file is a `setup` section that may expose options for testing different behaviors.
+
+Examples that are dependent on the number of degrees of freedom follow a naming convention with the kit name suffixed. Examples that are applicable to all kits do not have a suffix. They default to using the `4dof` kit, so please modify accordingly.
+
+:code: link:./
+
+[width="100%",options="header",cols="2a,3a"]
+|====================
+|  Example  |  Description 
+
+| {code}/ex_gravity_compensation.m[ex_gravity_compensation] + 
+  (link:https://youtu.be/sli8Tq8FAQs[video])
+| * Gravity compensation to allow an interactive weight-less mode
+
+| {code}/ex_impedance_control.m[ex_impedance_control] 
+| * Controls the end of the arm with virtual springs and dampers in Cartesian (XYZ) space.
+  * Controller can be toggled on/off to allow repositioning.
+
+| {code}/ex_kinematics_log_analysis.m[ex_kinematics_log_analysis] 
+| * Loads an example `.hebilog` and `.HRDF` file to plot arm end-effector tracking / error.
+
+| {code}/ex_kinematics_visualization.m[ex_kinematics_visualization] 
+| * Passive online visualization of the arm's configuration
+
+| {code}/ex_mobile_device_control.m[ex_mobile_device_control] 
+| * Remote control of the end-effector of an arm using a mobile device
+  * Requires AR-capable Android or iOS device running the HEBI Mobile I/O App.
+  * Requires a 6-DoF arm configuration.
+
+| {code}/ex_teach_repeat.m[ex_teach_repeat]
+| * Record waypoints in gravity compensated mode
+  * Replay waypoints using trajectories
+
+| {code}/ex_teach_repeat_w_gripper.m[ex_teach_repeat_w_gripper]
+| * Record waypoints in gravity compensated mode
+  * Waypoints include ability to toggle a gripper to open/close
+  * Replay waypoints using trajectories
+
+|====================
+
+
+
