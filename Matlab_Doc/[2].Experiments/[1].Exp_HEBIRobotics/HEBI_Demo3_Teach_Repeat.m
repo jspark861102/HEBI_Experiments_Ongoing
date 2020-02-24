@@ -151,7 +151,8 @@ timeToMove = 1.5;             % [sec]
 time = [ 0 timeToMove ];    % [sec]
 
 %Move along waypoints
-while true
+% while true
+for iter = 1 : 1
     if stopBetweenWaypoints
         % Split waypoints into individual movements
         numMoves = size(waypoints,1);
@@ -175,7 +176,7 @@ while true
                 poscmdlog = [poscmdlog; pos];
                 posfbklog = [posfbklog; fbk.position];
 
-                effortOffset = [0 -7.5+2.26*(fbk.position(2) - 0.72) 0 0 0 0];
+               true effortOffset = [0 -7.5+2.26*(fbk.position(2) - 0.72) 0 0 0 0];
 
                 gravCompEfforts = kin.getGravCompEfforts( fbk.position, gravityVec );
                 dynamicCompEfforts = kin.getDynamicCompEfforts( fbk.position, ...
@@ -287,9 +288,17 @@ end
 %% plot
 % Stop logging and plot the command vs feedback pos/vel/effort
 log = group.stopLog();
-HebiUtils.plotLogs( log, 'position', 'figNum', 101 );
-HebiUtils.plotLogs( log, 'velocity', 'figNum', 102 );
-HebiUtils.plotLogs( log, 'effort', 'figNum', 103 );
+% HebiUtils.plotLogs( log, 'position', 'figNum', 101 );
+% HebiUtils.plotLogs( log, 'velocity', 'figNum', 102 );
+% HebiUtils.plotLogs( log, 'effort', 'figNum', 103 );
+
+waypoints = waypoints
+xyztargets = [];
+for i = 1 : size(waypoints,1)
+xyztargets = [xyztargets kin.getFK('endeffector',waypoints(i,:))];
+end
+xyztergets = xyztargets
+
 
 %% display
 % waypoints_joint = waypoints

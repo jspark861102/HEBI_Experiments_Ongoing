@@ -7,7 +7,7 @@ clc
 %11:pick&insert
 %12:pick&pushing&pivoting&place
 %13:pick&pushing&insert
-demo_case = 14;
+demo_case = 13;
 
 %controlmode = 1 : cartesian space control
 %controlmode = 2 : joint pace control

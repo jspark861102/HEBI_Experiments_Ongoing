@@ -1,146 +1,437 @@
-function [posTargets, xyzTargets, rotMatTarget, control_time, gripperforce, FT_trigger, desired_force, num_init_move, IKinit] = TargetWaypoints_BushingTestbed(demo_case, kin, initPosition_front, initPosition_back)
+function [posTargets, xyzTargets, rotMatTarget, control_time, gripperforce, FT_trigger, desired_force, num_init_move, IKinit] = TargetWaypoints_BushingTestbed_vision(object_case, demo_case, kin)
+    
+    % Inverse Kinematics initial position
+    initPosition_front  = [  0   pi/4 pi/2 pi/4 -pi   pi/2 ];  % [rad]
+    initPosition_back   = [ -pi  pi/4 pi/2 pi/4 -pi   pi/2 ];  % [rad]
+    initPosition_front2 = [  0   pi/4 pi/2 pi/4 -pi   pi ];  % [rad]
+    initPosition_back2  = [ -pi  pi/4 pi/2 pi/4 -pi/2 pi ];  % [rad]
+
     global vision_xyzTargets; 
     global vision_rotMatTarget; 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ���׷κ��� �ν� pick %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%% neutral %%%%%%%%%%%%%%%%%%%%%%%%%%%%
                          %1       2       3       4   
-    pick2.xyzTargets =   [ -0.20 ;    % x [m]
+    neutral.xyzTargets =   [ -0.20 ;    % x [m]
                            -0.43 ;    % y [m]
                             0.15 ];  % z [m]  
-    pick2.gripperforce = [  1.5  ];  %���� ���۽ÿ� �ش� �� �Ϸ���    
-    pick2.control_time = [  2.0  ]; 
+    neutral.gripperforce = [  1.5  ];    
+    neutral.control_time = [  2.0  ]; 
         rot_2 = R_x(pi)*R_z(pi);
-    pick2.rotMatTarget = [  rot_2];
-    pick2.IKinit =       [ -1    ];
-    pick2.FT_trigger =   [  0    ];
-    pick2.desired_force =[  0    ];
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
+    neutral.rotMatTarget = [  rot_2];
+    neutral.IKinit =       [ -1    ];
+    neutral.FT_trigger =   [  0    ];
+    neutral.desired_force =[  0    ];
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ���׷κ��� �ν� pick %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%% toLbox %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                          %1       2       3       4   
-    pick3.xyzTargets =   [  0.285   0.285;    % x [m]
+    toLbox.xyzTargets =   [  0.285   0.285;    % x [m]
                            -0.265  -0.265;    % y [m]2
                            -0.080  -0.080   ];  % z [m]  
-    pick3.gripperforce = [  -5       -5       ];
-    pick3.control_time = [  2.0     10.0    ]; 
-    pick3.rotMatTarget = [  R_x(pi) R_x(pi) ];
-    pick3.IKinit =       [  1       1       ];
-    pick3.FT_trigger =   [  0       0       ];
-    pick3.desired_force =[  0       0       ];
+    toLbox.gripperforce = [  -5       -5       ];
+%     toLbox.control_time = [  2.0     10.0    ]; 
+    toLbox.control_time = [  2.0     0.5    ]; 
+    toLbox.rotMatTarget = [  R_x(pi) R_x(pi) ];
+    toLbox.IKinit =       [  1       1       ];
+    toLbox.FT_trigger =   [  0       0       ];
+    toLbox.desired_force =[  0       0       ];
 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%     
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%     
     
-
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ���׷κ��� �ν� pick %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%% toRbox %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                          %1       2       3       4   
-%     pick.xyzTargets =   [ 0.285   0.285   0.270;    % x [m]
-%                          -0.265  -0.265  -0.255;    % y [m]
-%                          -0.185  -0.185  -0.030];  % z [m]                      
-%     pick.gripperforce = [ 2      -5      -5];  %���� ���۽ÿ� �ش� �� �Ϸ���    
-%     pick.control_time = [ 1.0     0.8     1.0]; 
-%     pick.rotMatTarget = [ R_x(pi) R_x(pi) R_x(pi)];    
-%     pick.IKinit =       [ 1       1       1      ];
-%     pick.FT_trigger =   [ 0       0       0      ];
-%     pick.desired_force =[ 0       0       0      ];
+    toRbox.xyzTargets =   [  0.285;    % x [m]
+                            +0.265;    % y [m]2
+                            -0.080   ];  % z [m]  
+    toRbox.gripperforce = [ -0.5     ];
+    toRbox.control_time = [  5.0     ]; 
+    toRbox.rotMatTarget = [  R_x(pi) ];
+    toRbox.IKinit =       [  1       ];
+    toRbox.FT_trigger =   [  0       ];
+    toRbox.desired_force =[  0       ];
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%% pick_vision %%%%%%%%%%%%%%%%%%%%%%%%%%
+                         %1                                   2                      3                     4       
+    pick_vision.xyzTargets =   [ [vision_xyzTargets(1:2);-0.080]     vision_xyzTargets      vision_xyzTargets     [0.270 -0.255 -0.030]']; 
+    pick_vision.gripperforce = [ 2                                   2                     -5                     -5                    ];    
+    pick_vision.control_time = [ 1.0                                 1.5                    0.8                    1.5                  ]; 
+    pick_vision.rotMatTarget = [ vision_rotMatTarget                 vision_rotMatTarget    vision_rotMatTarget    R_x(pi)              ];
+    pick_vision.IKinit =       [ 1                                   1                      1                      1                    ];
+    pick_vision.FT_trigger   = [ 0                                   0                      0                      0                    ];
+    pick_vision.desired_force= [ 0                                   0                      0                      0                    ];
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% pushing_bed %%%%%%%%%%%%%%%%%%%%%%
+                              %1       2          
+    pushing_bed.xyzTargets =   [ -0.4913  -0.4913  -0.4913;    % x [m]
+                              -0.1000   0.2000  -0.0000;    % y [m]
+                               0.1960   0.1960   0.3000];  % z [m]
+    pushing_bed.gripperforce = [ -5       -1.3     -5    ];           
+    pushing_bed.control_time = [  3.0        3        1    ];
+        rot_pushing = R_x(pi)*R_z(pi);
+    pushing_bed.rotMatTarget = [  rot_pushing    rot_pushing    rot_pushing];
+    pushing_bed.IKinit =       [ -1       -1       -1    ];
+    pushing_bed.FT_trigger   = [  0        2        0    ];
+    pushing_bed.desired_force= [  0       -11       0    ];
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% insert_bed %%%%%%%%%%%%%%%%%%%%%
+                                  %1       2          
+    insert_bed.xyzTargets =    [ -0.4913  -0.4913  -0.4913;    % x [m]
+                                   0.1300   0.1300  -0.0500;    % y [m]
+                                   0.3000   0.1900   0.3500 ];  % z [m]   
+    insert_bed.gripperforce =  [ -5       -5        3      ];  
+    insert_bed.control_time =  [  1.0      1.0      1.0      ]; 
+        rot_insert = R_x(pi-pi/10)*R_z(pi);
+    insert_bed.rotMatTarget =  [  rot_insert    rot_insert    rot_insert    ];
+    insert_bed.IKinit =        [ -1       -1       -1        ];
+    insert_bed.FT_trigger =    [  0        0        0        ];
+    insert_bed.desired_force =    [  0        0        0        ];
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% insert_bed2 %%%%%%%%%%%%%%%%%%%%%
+                                  %1       2          
+    insert_bed2.xyzTargets =    [ -0.4976          -0.4000                 -0.4000                  -0.4000               ;    % x [m]
+                                  -0.3052           0.0800                  0.0900                  -0.0800               ;    % y [m]
+                                   0.3000           0.2800                  0.2000                   0.2000               ];  % z [m]   
+    insert_bed2.gripperforce =  [ -5               -5                      -5                       -0.0                    ];  
+    insert_bed2.control_time =  [  5.0              5.0                     5.0                      5.0                  ]; 
+    insert_bed2.rotMatTarget =  [  R_x(pi)*R_z(pi)  R_y(-pi/2)*R_x(-pi/2)   R_y(-pi/2)*R_x(-pi/2)    R_y(-pi/2)*R_x(-pi/2)];
+    insert_bed2.IKinit =        [ -1               -2                      -2                       -2                    ];
+    insert_bed2.FT_trigger =    [  0                0                       0                        0                    ];
+    insert_bed2.desired_force = [  0                0                       0                        0                    ];
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+          
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% align_vision %%%%%%%%%%%%%%%%%%%
+    align_vision.xyzTargets =   [ [vision_xyzTargets(1:2);-0.080]     [vision_xyzTargets(1:2);-0.080]      [vision_xyzTargets(1:2);-0.300]    [0.600 vision_xyzTargets(2) -0.300]'  [0.600 vision_xyzTargets(2) -0.300]'    [0.600 0.1 -0.300]'        [vision_xyzTargets(1:2);-0.300]     [vision_xyzTargets(1:2);-0.080]     [vision_xyzTargets(1:2);-0.080]]; 
+    align_vision.gripperforce = [-5                                  -5                                   -5                                 -5                                    -5                                      -5                         -3                                   0.20                                 0.20];    
+    align_vision.control_time = [ 1.0                                 0.8                                  2.0                                2.0                                   0.8                                     5.0                        1.0                                 2.0                                 2.0]; 
+    align_vision.rotMatTarget = [ vision_rotMatTarget                 vision_rotMatTarget                  vision_rotMatTarget                vision_rotMatTarget                   vision_rotMatTarget                     vision_rotMatTarget        vision_rotMatTarget                 vision_rotMatTarget                 vision_rotMatTarget];
+    align_vision.IKinit =       [ 2                                   2                                    2                                  2                                     2                                       2                          2                                   2                                   2];
+    align_vision.FT_trigger   = [ 0                                   0                                    3                                  1                                     0                                       2                          0                                   0                                   0];
+    align_vision.desired_force= [ 0                                   0                                    32                                -8                                     0                                      -1.8                        0                                   0                                   0];
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+      
+    global l;
+    global D;     
+    if object_case == 1    
+        %bushing 1
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%% pickup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        xl = l*1.3;
+        zl = (l-D)*0.5;
+        xi = 0.285;
+        zi = -0.266;
+%         zi = -0.250;
+        pickup.xyzTargets =   [  0.285        0.285        0.285         xi+xl*(1-cos(pi/2/5*1))   xi+xl*(1-cos(pi/2/5*2))   xi+xl*(1-cos(pi/2/5*3))  xi+xl*(1-cos(pi/2/5*4)+0.02)     xi+xl*(1-cos(pi/2/5*4)+0.23)     xi+xl*(1-cos(pi/2/5*4)-0.0)  ;    % x [m]
+                                +0.270       +0.270       +0.270        +0.270                    +0.270                    +0.270                   +0.270                           +0.270+0.03                      +0.270                       ;    % y [m]
+                                 zi           zi           zi            zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)      zi+zl*sin(pi/2/5*1)-0.02         zi+zl*sin(pi/2/5*1)+0.04        -0.1                         ];   % z [m]  
+        pickup.gripperforce = [  1.5          0.5         -3            -3                        -3                        -3                       -3                          -2.0                             -5.0                         ];
+        pickup.control_time = [  2.0          0.5          2.0           2.0                       2.0                       2.0                      2.0                         1.0                              2.0                         ];
+            rot_pickup = R_x(pi)*R_y(pi/10);
+        pickup.rotMatTarget = [  rot_pickup   rot_pickup   rot_pickup    R_x(pi)*R_y(0)            R_x(pi)*R_y(-pi*1/10)     R_x(pi)*R_y(-pi*2/10)    R_x(pi)*R_y(-pi*3.0/10)     R_x(pi)                          R_x(pi)                     ];
+        pickup.IKinit =       [  1            1            1             1                         1                         1                        1                           1                                1                           ];
+        pickup.FT_trigger =   [  0            0            0             0                         0                         0                        0                           0                                0                           ];
+        pickup.desired_force =[  0            0            0             0                         0                         0                        0                           0                                0                           ];
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    elseif object_case == 2
+        %bushing 2
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%% pickup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        xl = l*2.8;
+        zl = -0.03;
+        xi = 0.285;
+        zi = -0.236;
+        pickup.xyzTargets =   [  0.285        0.285        0.285         xi+xl*(1-cos(pi/2/5*1))   xi+xl*(1-cos(pi/2/5*2))       xi+xl*(1-cos(pi/2/5*3))       xi+xl*(1-cos(pi/2/5*4))     xi+xl*(1-cos(pi/2/5*4)+0.07)     xi+xl*(1-cos(pi/2/5*4)-0.0)  ;    % x [m]
+                                +0.270       +0.270       +0.270        +0.270-0.02               +0.270-0.02                   +0.270-0.02                   +0.270-0.02                 +0.270+0.03                      +0.270                       ;    % y [m]
+                                 zi           zi           zi            zi+zl*sin(pi/2/5*1)       zi+(zl-0.03)*sin(pi/2/5*1)    zi+(zl-0.06)*sin(pi/2/5*1)    zi+(zl-0.09)*sin(pi/2/5*1)  zi+(zl-0.09)*sin(pi/2/5*1)+0.04 -0.1                         ];   % z [m]  
+        pickup.gripperforce = [  1.5          0.5         -3            -3                        -3                            -3                            -3                          -2.0                             -3.0                         ];
+        pickup.control_time = [  2.0          0.5          2.0           2.0                       2.0                           2.0                           2.0                         1.0                              2.0                         ];
+            rot_pickup = R_x(pi)*R_y(pi/10);
+        pickup.rotMatTarget = [  rot_pickup   rot_pickup   rot_pickup    R_x(pi)*R_y(0)            R_x(pi)*R_y(-pi*1/10)         R_x(pi)*R_y(-pi*2/10)         R_x(pi)*R_y(-pi*2.7/10)     R_x(pi)                          R_x(pi)                     ];
+        pickup.IKinit =       [  1            1            1             1                         1                             1                             1                           1                                1                           ];
+        pickup.FT_trigger =   [  0            0            0             0                         0                             0                             0                           0                                0                           ];
+        pickup.desired_force =[  0            0            0             0                         0                             0                             0                           0                                0                           ];
+        %%%%%%%%%%%%%%%%%%10%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    elseif object_case == 3    
+        %bushing 3
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%% pickup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        xl = l*1.9;
+        zl = -0.12;
+        xi = 0.285;
+        zi = -0.234;
+        pickup.xyzTargets =   [  0.285        0.285        0.285         xi+xl*(1-cos(pi/2/5*1))   xi+xl*(1-cos(pi/2/5*2))   xi+xl*(1-cos(pi/2/5*3))  xi+xl*(1-cos(pi/2/5*4))     xi+xl*(1-cos(pi/2/5*4)+0.07)     xi+xl*(1-cos(pi/2/5*4)-0.0)  ;    % x [m]
+                                +0.270       +0.270       +0.270        +0.270                    +0.270                    +0.270                   +0.270                      +0.270+0.03                           +0.270                       ;    % y [m]
+                                 zi           zi           zi            zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)      zi+zl*sin(pi/2/5*1)         zi+zl*sin(pi/2/5*1)+0.04        -0.1                         ];   % z [m]  
+        pickup.gripperforce = [  1.5          0.5         -3            -3                        -3                        -3                       -3                          -2.0                             -3.0                         ];
+        pickup.control_time = [  2.0          0.5          2.0           2.0                       2.0                       2.0                      2.0                         1.0                              2.0                         ];
+            rot_pickup = R_x(pi)*R_y(pi/10);
+        pickup.rotMatTarget = [  rot_pickup   rot_pickup   rot_pickup    R_x(pi)*R_y(0)            R_x(pi)*R_y(-pi*1/10)     R_x(pi)*R_y(-pi*2/10)    R_x(pi)*R_y(-pi*2.8/10)     R_x(pi)                          R_x(pi)                     ];
+        pickup.IKinit =       [  1            1            1             1                         1                         1                        1                           1                                1                           ];
+        pickup.FT_trigger =   [  0            0            0             0                         0                         0                        0                           0                                0                           ];
+        pickup.desired_force =[  0            0            0             0                         0                         0                        0                           0                                0                           ];
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+     
+    elseif object_case == 4
+        %bushing 4
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%% pickup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        xl = l*1.3;
+        zl = (l-D)*0.5;
+        xi = 0.285;
+        zi = -0.262;
+        pickup.xyzTargets =   [  0.285        0.285        0.285         xi+xl*(1-cos(pi/2/5*1))   xi+xl*(1-cos(pi/2/5*2))   xi+xl*(1-cos(pi/2/5*3))  xi+xl*(1-cos(pi/2/5*4))     xi+xl*(1-cos(pi/2/5*4)+0.07)     xi+xl*(1-cos(pi/2/5*4)-0.0)  ;    % x [m]
+                                +0.270       +0.270       +0.270        +0.270                    +0.270                    +0.270                   +0.270                      +0.270+0.03                           +0.270                       ;    % y [m]
+                                 zi           zi           zi            zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)      zi+zl*sin(pi/2/5*1)         zi+zl*sin(pi/2/5*1)+0.04        -0.1                         ];   % z [m]  
+        pickup.gripperforce = [  1.5          0.5         -3            -3                        -3                        -3                       -3                          -2.0                             -3.0                         ];
+        pickup.control_time = [  2.0          0.5          2.0           2.0                       2.0                       2.0                      2.0                         1.0                              2.0                         ];
+            rot_pickup = R_x(pi)*R_y(pi/10);
+        pickup.rotMatTarget = [  rot_pickup   rot_pickup   rot_pickup    R_x(pi)*R_y(0)            R_x(pi)*R_y(-pi*1/10)     R_x(pi)*R_y(-pi*2/10)    R_x(pi)*R_y(-pi*2.8/10)     R_x(pi)                          R_x(pi)                     ];
+        pickup.IKinit =       [  1            1            1             1                         1                         1                        1                           1                                1                           ];
+        pickup.FT_trigger =   [  0            0            0             0                         0                         0                        0                           0                                0                           ];
+        pickup.desired_force =[  0            0            0             0                         0                         0                        0                           0                                0                           ];
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    elseif object_case == 5
+        %aluminum case
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%% pickup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        xl = l*1.9;
+        zl = (l-D)*0.8;
+        xi = 0.225;
+        zi = -0.234;
+        pickup.xyzTargets =   [  xi           xi           xi            xi+xl*(1-cos(pi/2/5*1))   xi+xl*(1-cos(pi/2/5*2))   xi+xl*(1-cos(pi/2/5*3))  xi+xl*(1-cos(pi/2/5*4))     xi+xl*(1-cos(pi/2/5*4)+0.07)     xi+xl*(1-cos(pi/2/5*4)-0.0)  ;    % x [m]
+                                +0.270       +0.270       +0.270        +0.270-0.02                    +0.270-0.02                    +0.270-0.03                   +0.270+0.03                      +0.270+0.03                           +0.270                       ;    % y [m]
+                                 zi           zi           zi            zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)      zi+zl*sin(pi/2/5*1)+0.01         zi+zl*sin(pi/2/5*1)+0.06        -0.0                         ];   % z [m]  
+        pickup.gripperforce = [  1.5          0.5         -5            -5                        -5                        -5                       -5                          -0.5                             -5.0                         ];
+        pickup.control_time = [  2.0          0.5          2.0           2.0                       2.0                       2.0                      2.0                         2.0                              2.0                         ];
+            rot_pickup = R_x(pi)*R_y(pi/3.8);
+%             rot_pickup = R_x(pi)*R_y(pi/10);
+        pickup.rotMatTarget = [  rot_pickup   rot_pickup   rot_pickup    R_x(pi)*R_y(0)            R_x(pi)*R_y(-pi*1/10)     R_x(pi)*R_y(-pi*2/10)    R_x(pi)*R_y(-pi*2.9/10)     R_x(pi)                          R_x(pi)                     ];
+        pickup.IKinit =       [  1            1            1             1                         1                         1                        1                           1                                1                           ];
+        pickup.FT_trigger =   [  0            0            0             0                         0                         0                        0                           0                                0                           ];
+        pickup.desired_force =[  0            0            0             0                         0                         0                        0                           0                                0                           ];
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    elseif object_case == 6
+        %water bottle
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%% pickup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        xl = l*1.9;
+        zl = (l-D)*0.8;
+        xi = 0.225;
+        zi = -0.238;
+        pickup.xyzTargets =   [  xi           xi           xi         xi+xl*(1-cos(pi/2/5*1))   xi+xl*(1-cos(pi/2/5*2))   xi+xl*(1-cos(pi/2/5*3))  xi+xl*(1-cos(pi/2/5*4))     xi+xl*(1-cos(pi/2/5*4)+0.07)     xi+xl*(1-cos(pi/2/5*4)-0.0)  ;    % x [m]
+                                +0.270       +0.270       +0.270        +0.270                    +0.270                    +0.270                   +0.270                      +0.270+0.03                           +0.270                       ;    % y [m]
+                                 zi           zi           zi            zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)      zi+zl*sin(pi/2/5*1)         zi+zl*sin(pi/2/5*1)+0.04        -0.1                         ];   % z [m]  
+        pickup.gripperforce = [  1.5          0.5         -5            -5                        -5                        -5                       -5                          -2.0                             -5.0                         ];
+        pickup.control_time = [  2.0          0.5          2.0           2.0                       2.0                       2.0                      2.0                         1.0                              2.0                         ];
+%             rot_pickup = R_x(pi)*R_y(pi/6);
+            rot_pickup = R_x(pi)*R_y(pi/4);
+        pickup.rotMatTarget = [  rot_pickup   rot_pickup   rot_pickup    R_x(pi)*R_y(0)            R_x(pi)*R_y(-pi*1/10)     R_x(pi)*R_y(-pi*2/10)    R_x(pi)*R_y(-pi*2.8/10)     R_x(pi)                          R_x(pi)                     ];
+        pickup.IKinit =       [  1            1            1             1                         1                         1                        1                           1                                1                           ];
+        pickup.FT_trigger =   [  0            0            0             0                         0                         0                        0                           0                                0                           ];
+        pickup.desired_force =[  0            0            0             0                         0                         0                        0                           0                                0                           ];
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+%     elseif object_case == 7
+%         %box tape
+%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%% pickup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         xl = l*1.3;
+%         zl = (l-D)*0.8;
+%         xi = 0.285;
+%         zi = -0.190;
+%         pickup.xyzTargets =   [  0.285        0.285        0.285         xi+xl*(1-cos(pi/2/5*1))   xi+xl*(1-cos(pi/2/5*2))   xi+xl*(1-cos(pi/2/5*3))  xi+xl*(1-cos(pi/2/5*4))     xi+xl*(1-cos(pi/2/5*4)+0.07)     xi+xl*(1-cos(pi/2/5*4)-0.0)  ;    % x [m]
+%                                 +0.270       +0.270       +0.270        +0.270                    +0.270                    +0.270                   +0.270                      +0.270+0.03                           +0.270                       ;    % y [m]
+%                                  zi           zi           zi            zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)      zi+zl*sin(pi/2/5*1)         zi+zl*sin(pi/2/5*1)+0.04        -0.1                         ];   % z [m]  
+%         pickup.gripperforce = [  1.5          0.5         -3            -3                        -3                        -3                       -3                          -2.0                             -3.0                         ];
+%         pickup.control_time = [  2.0          0.5          2.0           2.0                       2.0                       2.0                      2.0                         1.0                              2.0                         ];
+%             rot_pickup = R_x(pi)*R_y(pi/4);
+%         pickup.rotMatTarget = [  rot_pickup   rot_pickup   rot_pickup    R_x(pi)*R_y(0)            R_x(pi)*R_y(-pi*1/10)     R_x(pi)*R_y(-pi*2/10)    R_x(pi)*R_y(-pi*2.8/10)     R_x(pi)                          R_x(pi)                     ];
+%         pickup.IKinit =       [  1            1            1             1                         1                         1                        1                           1                                1                           ];
+%         pickup.FT_trigger =   [  0            0            0             0                         0                         0                        0                           0                                0                           ];
+%         pickup.desired_force =[  0            0            0             0                         0                         0                        0                           0                                0                           ];
+%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+    elseif object_case == 7
+        %box tape
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%% pickup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        xl = l*1.3;
+        zl = (l-D)*0.8;
+        xi = 0.285;
+        zi = -0.190;
+        pickup.xyzTargets =   [  0.285        0.285        0.285          xi+xl*(1-cos(pi/2/5*4)-0.0)  ;    % x [m]
+                                +0.270       +0.270       +0.270         +0.270                       ;    % y [m]
+                                 zi           zi           zi            -0.1                         ];   % z [m]  
+        pickup.gripperforce = [  1.5          0.5         -3             -3.0                         ];
+        pickup.control_time = [  2.0          0.5          2.0            2.0                         ];
+            rot_pickup = R_x(pi)*R_y(pi/4);
+        pickup.rotMatTarget = [  rot_pickup   rot_pickup   rot_pickup     R_x(pi)                     ];
+        pickup.IKinit =       [  1            1            1              1                           ];
+        pickup.FT_trigger =   [  0            0            0              0                           ];
+        pickup.desired_force =[  0            0            0              0                           ];
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    elseif object_case == 8
+        %thin plastic case
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%% pickup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        xl = l*1.3;
+        zl = (l-D)*0.8;
+        xi = 0.285;
+        zi = -0.268;
+        pickup.xyzTargets =   [  0.285        0.285        0.285         xi+xl*(1-cos(pi/2/5*1))   xi+xl*(1-cos(pi/2/5*2))   xi+xl*(1-cos(pi/2/5*3))  xi+xl*(1-cos(pi/2/5*4))     xi+xl*(1-cos(pi/2/5*4)+0.07)     xi+xl*(1-cos(pi/2/5*4)-0.0)  ;    % x [m]
+                                +0.270       +0.270       +0.270        +0.270                    +0.270                    +0.270                   +0.270                      +0.270+0.03                           +0.270                       ;    % y [m]
+                                 zi           zi           zi            zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)      zi+zl*sin(pi/2/5*1)         zi+zl*sin(pi/2/5*1)+0.04        -0.1                         ];   % z [m]  
+        pickup.gripperforce = [  1.5          0.5         -3            -3                        -3                        -3                       -3                          -2.0                             -3.0                         ];
+        pickup.control_time = [  2.0          0.5          2.0           2.0                       2.0                       2.0                      2.0                         1.0                              2.0                         ];
+            rot_pickup = R_x(pi)*R_y(pi/10);
+        pickup.rotMatTarget = [  rot_pickup   rot_pickup   rot_pickup    R_x(pi)*R_y(0)            R_x(pi)*R_y(-pi*1/10)     R_x(pi)*R_y(-pi*2/10)    R_x(pi)*R_y(-pi*2.8/10)     R_x(pi)                          R_x(pi)                     ];
+        pickup.IKinit =       [  1            1            1             1                         1                         1                        1                           1                                1                           ];
+        pickup.FT_trigger =   [  0            0            0             0                         0                         0                        0                           0                                0                           ];
+        pickup.desired_force =[  0            0            0             0                         0                         0                        0                           0                                0                           ];
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+    elseif object_case == 9
+        %drug bottle
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%% pickup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        xl = l*1.5;
+        zl = (l-D)*0.5;
+        xi = 0.285;
+        zi = -0.254;
+        pickup.xyzTargets =   [  0.285        0.285        0.285         xi+xl*(1-cos(pi/2/5*1))   xi+xl*(1-cos(pi/2/5*2))   xi+xl*(1-cos(pi/2/5*3))  xi+xl*(1-cos(pi/2/5*4))     xi+xl*(1-cos(pi/2/5*4)+0.07)     xi+xl*(1-cos(pi/2/5*4)-0.0)  ;    % x [m]
+                                +0.270       +0.270       +0.270        +0.270                    +0.270                    +0.270                   +0.270                      +0.270+0.04                           +0.270                       ;    % y [m]
+                                 zi           zi           zi            zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)      zi+zl*sin(pi/2/5*1)-0.02         zi+zl*sin(pi/2/5*1)+0.04        -0.1                         ];   % z [m]  
+        pickup.gripperforce = [  1.5          0.5         -3            -3                        -3                        -3                       -3                          -2.0                             -3.0                         ];
+        pickup.control_time = [  2.0          0.5          2.0           2.0                       2.0                       2.0                      2.0                         2.0                              2.0                         ];
+            rot_pickup = R_x(pi)*R_y(pi/10);
+        pickup.rotMatTarget = [  rot_pickup   rot_pickup   rot_pickup    R_x(pi)*R_y(0)            R_x(pi)*R_y(-pi*1/10)     R_x(pi)*R_y(-pi*2/10)    R_x(pi)*R_y(-pi*3.7/10)     R_x(pi)                          R_x(pi)                     ];
+        pickup.IKinit =       [  1            1            1             1                         1                         1                        1                           1                                1                           ];
+        pickup.FT_trigger =   [  0            0            0             0                         0                         0                        0                           0                                0                           ];
+        pickup.desired_force =[  0            0            0             0                         0                         0                        0                           0                                0                           ];
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+    elseif object_case == 10
+        %milk_bottle
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%% pickup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        xl = l*1.5;
+        zl = (l-D)*0.5;
+        xi = 0.285;
+        zi = -0.250;
+        pickup.xyzTargets =   [  0.285        0.285        0.285         xi+xl*(1-cos(pi/2/5*1))   xi+xl*(1-cos(pi/2/5*2))   xi+xl*(1-cos(pi/2/5*3))  xi+xl*(1-cos(pi/2/5*4))     xi+xl*(1-cos(pi/2/5*4)+0.07)     xi+xl*(1-cos(pi/2/5*4)-0.0)  ;    % x [m]
+                                +0.270       +0.270       +0.270        +0.270                    +0.270                    +0.270                   +0.270                      +0.270+0.04                           +0.270                       ;    % y [m]
+                                 zi           zi           zi            zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)      zi+zl*sin(pi/2/5*1)-0.02         zi+zl*sin(pi/2/5*1)+0.06        -0.1                         ];   % z [m]  
+        pickup.gripperforce = [  1.5          0.5         -3            -3                        -3                        -3                       -3                          -2.0                             -3.0                         ];
+        pickup.control_time = [  2.0          0.5          2.0           2.0                       2.0                       2.0                      2.0                         2.0                              2.0                         ];
+            rot_pickup = R_x(pi)*R_y(pi/10);
+        pickup.rotMatTarget = [  rot_pickup   rot_pickup   rot_pickup    R_x(pi)*R_y(0)            R_x(pi)*R_y(-pi*1/10)     R_x(pi)*R_y(-pi*2/10)    R_x(pi)*R_y(-pi*2.5/10)     R_x(pi)                          R_x(pi)                     ];
+        pickup.IKinit =       [  1            1            1             1                         1                         1                        1                           1                                1                           ];
+        pickup.FT_trigger =   [  0            0            0             0                         0                         0                        0                           0                                0                           ];
+        pickup.desired_force =[  0            0            0             0                         0                         0                        0                           0                                0                           ];
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+    elseif object_case == 11
+        %thin zig
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%% pickup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        xl = l*1.5;
+        zl = (l-D)*0.5;
+        xi = 0.285;
+        zi = -0.275;
+        pickup.xyzTargets =   [  0.285        0.285        0.285         xi+xl*(1-cos(pi/2/5*1))   xi+xl*(1-cos(pi/2/5*2))   xi+xl*(1-cos(pi/2/5*3))  xi+xl*(1-cos(pi/2/5*4)+0.06)     xi+xl*(1-cos(pi/2/5*4)+0.00)     xi+xl*(1-cos(pi/2/5*4)-0.0)  ;    % x [m]
+                                +0.270       +0.270       +0.270        +0.270                    +0.270                    +0.270-0.03                   +0.270-0.03                      +0.270-0.03                          +0.270                       ;    % y [m]
+                                 zi           zi           zi            zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)      zi+zl*sin(pi/2/5*1)-0.02         zi+zl*sin(pi/2/5*1)+0.09        -0.1                         ];   % z [m]  
+        pickup.gripperforce = [  1.5          0.5         -3            -3                        -3                        -3                       -3                          -1.0                             -3.0                         ];
+        pickup.control_time = [  2.0          0.5          2.0           2.0                       2.0                       2.0                      2.0                         3.0                              2.0                         ];
+            rot_pickup = R_x(pi)*R_y(pi/20);
+        pickup.rotMatTarget = [  rot_pickup   rot_pickup   rot_pickup    R_x(pi)*R_y(0)            R_x(pi)*R_y(-pi*1/10)     R_x(pi)*R_y(-pi*2/10)    R_x(pi)*R_y(-pi*4.0/10)     R_x(pi)                          R_x(pi)                     ];
+        pickup.IKinit =       [  1            1            1             1                         1                         1                        1                           1                                1                           ];
+        pickup.FT_trigger =   [  0            0            0             0                         0                         0                        0                           0                                0                           ];
+        pickup.desired_force =[  0            0            0             0                         0                         0                        0                           0                                0                           ];
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+    elseif object_case == 12
+        %wire zig
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%% pickup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        xl = l*1.3;
+        zl = (l-D)*0.9;
+        xi = 0.285;
+        zi = -0.235;
+        pickup.xyzTargets =   [  0.285        0.285        0.285         xi+xl*(1-cos(pi/2/5*1))   xi+xl*(1-cos(pi/2/5*2))   xi+xl*(1-cos(pi/2/5*3))  xi+xl*(1-cos(pi/2/5*4))     xi+xl*(1-cos(pi/2/5*4)+0.40)     xi+xl*(1-cos(pi/2/5*4)+0.40)    xi+xl*(1-cos(pi/2/5*4)+0.40)      xi+xl*(1-cos(pi/2/5*4)+0.40);    % x [m]
+                                +0.270       +0.270       +0.270        +0.270-0.00               +0.270-0.02               +0.270-0.02              +0.270-0.02                 +0.270+0.02                      +0.270+0.02                     +0.270+0.02                       +0.270+0.02                  ;    % y [m]
+                                 zi           zi           zi            zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)       zi+zl*sin(pi/2/5*1)      zi+zl*sin(pi/2/5*1)-0.02    zi+zl*sin(pi/2/5*1)+0.11         zi+zl*sin(pi/2/5*1)+0.02        zi+zl*sin(pi/2/5*1)+0.02         -0.1                        ];   % z [m]  
+        pickup.gripperforce = [  1.5          0.5         -3            -3                        -3                        -3                       -3                          +0.0                             -0.0                            -3.0                              -3.0                        ];
+        pickup.control_time = [  2.0          0.5          2.0           2.0                       2.0                       2.0                      2.0                         3.0                              2.0                             2.0                               2.0                        ];
+            rot_pickup = R_x(pi)*R_y(pi/10);
+        pickup.rotMatTarget = [  rot_pickup   rot_pickup   rot_pickup    R_x(pi)*R_y(0)            R_x(pi)*R_y(-pi*1/10)     R_x(pi)*R_y(-pi*2.5/10)  R_x(pi)*R_y(-pi*3.8/10)     R_x(pi)                          R_x(pi)                         R_x(pi)                           R_x(pi)                    ];
+        pickup.IKinit =       [  1            1            1             1                         1                         1                        1                           1                                1                               1                                 1                          ];
+        pickup.FT_trigger =   [  0            0            0             0                         0                         0                        0                           0                                0                               0                                 0                          ];
+        pickup.desired_force =[  0            0            0             0                         0                         0                        0                           0                                0                               0                                 0                          ];
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    end
 
     
-    pick.xyzTargets =   [ [vision_xyzTargets(1:2);-0.080]     vision_xyzTargets      vision_xyzTargets     [0.270 -0.255 -0.030]']; 
-    pick.gripperforce = [ 2                                   2                     -5                     -5                    ];    
-    pick.control_time = [ 1.0                                 1.5                    0.8                    1.5                  ]; 
-    pick.rotMatTarget = [ vision_rotMatTarget                 vision_rotMatTarget    vision_rotMatTarget    R_x(pi)              ];
-    pick.IKinit =       [ 1                                   1                      1                      1                    ];
-    pick.FT_trigger   = [ 0                                   0                      0                      0                    ];
-    pick.desired_force= [ 0                                   0                      0                      0                    ];
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
-   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% �ν� pushing 2 (���� ������ ����)%%%%%%%%%%%%%%%%%%%%
-                              %1       2          
-    pushing2.xyzTargets =   [ -0.4913  -0.4913  -0.4913;    % x [m]
-                              -0.1000   0.2000  -0.0000;    % y [m]
-                               0.1880   0.1880   0.3000];  % z [m]
-    pushing2.gripperforce = [ -5       -2.0     -5    ];           
-    pushing2.control_time = [  3.0        3        1    ];
-        rot_2 = R_x(pi)*R_z(pi);
-    pushing2.rotMatTarget = [  rot_2    rot_2    rot_2];
-    pushing2.IKinit =       [ -1       -1       -1    ];
-    pushing2.FT_trigger   = [  0        2        0    ];
-    pushing2.desired_force= [  0       -11       0    ];
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      
-    %%%%%%%%%%%%%%%%%%%% �׸��۸� ���Ա� ���� �� �������� �ν� ���� 2%%%%%%%%%%%%%%%%%%%%%%%
-                                  %1       2          
-    insert_end2.xyzTargets =    [ -0.4913  -0.4913  -0.4913;    % x [m]
-                                   0.1300   0.1300  -0.0700;    % y [m]
-                                   0.3000   0.1900   0.3500 ];  % z [m]   
-    insert_end2.gripperforce =  [ -5       -5        3      ];  %���� ���۽ÿ� �ش� �� �Ϸ��� 
-    insert_end2.control_time =  [  1.0      1.0      1.0      ]; 
-        rot_2 = R_x(pi-pi/10)*R_z(pi);
-    insert_end2.rotMatTarget =  [  rot_2    rot_2    rot_2    ];
-    insert_end2.IKinit =        [ -1       -1       -1        ];
-    insert_end2.FT_trigger =    [  0        0        0        ];
-    insert_end2.desired_force =    [  0        0        0        ];
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
-          
-    %%%%%%%%%%%%%%%%%%%% �׸��۸� ���Ա� ���� �� �������� �ν� ���� 2%%%%%%%%%%%%%%%%%%%%%%%
-                                  %1       2          
-%     align.xyzTargets =   [ [vision_xyzTargets(1:2);-0.080]     [vision_xyzTargets(1:2);-0.080]      [vision_xyzTargets(1:2);-0.300]    [0.500 vision_xyzTargets(2) -0.300]'  [0.500 0.1 -0.300]'       [vision_xyzTargets(1:2);-0.080]]; 
-%     align.gripperforce = [-5                                  -5                                   -5                                 -5                                    -5                        -1                              ];    
-%     align.control_time = [ 1.0                                 0.8                                  2.0                                2.0                                   3.0                       3.0                            ]; 
-%     align.rotMatTarget = [ vision_rotMatTarget                 vision_rotMatTarget                  vision_rotMatTarget                vision_rotMatTarget                   vision_rotMatTarget       vision_rotMatTarget            ];
-%     align.IKinit =       [ 1                                   1                                    1                                  1                                     1                         1                              ];
-%     align.FT_trigger   = [ 0                                   0                                    3                                  1                                     2                         0                              ];
-%     align.desired_force= [ 0                                   0                                    30                                -16                                   -3                         0                              ];
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %%%%%%%%%%%%%%%%%%%% �׸��۸� ���Ա� ���� �� �������� �ν� ���� 2%%%%%%%%%%%%%%%%%%%%%%%
-                                  %1       2          
-%     align.xyzTargets =   [ [vision_xyzTargets(1:2);-0.080]     [vision_xyzTargets(1:2);-0.080]      [vision_xyzTargets(1:2);-0.300]    [0.500 vision_xyzTargets(2) -0.300]'  [0.500 vision_xyzTargets(2) -0.300]'    [0.500 0.1 -0.300]'       [vision_xyzTargets(1:2);-0.080]    [vision_xyzTargets(1:2);-0.080]]; 
-%     align.gripperforce = [-5                                  -5                                   -5                                 -5                                    -5                                      -5                        -0.9                               -0.9];    
-%     align.control_time = [ 1.0                                 0.8                                  2.0                                2.0                                   0.8                                     5.0                       0.5                                3.0]; 
-%     align.rotMatTarget = [ vision_rotMatTarget                 vision_rotMatTarget                  vision_rotMatTarget                vision_rotMatTarget                   vision_rotMatTarget                     vision_rotMatTarget       vision_rotMatTarget                vision_rotMatTarget];
-%     align.IKinit =       [ 1                                   1                                    1                                  1                                     1                                       1                         1                                  1];
-%     align.FT_trigger   = [ 0                                   0                                    3                                  1                                     0                                       2                         0                                  0];
-%     align.desired_force= [ 0                                   0                                    27                                -7                                     0                                      -0.1                       0                                  0];
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-    %%%%%%%%%%%%%%%%%%%% �׸��۸� ���Ա� ���� �� �������� �ν� ���� 2%%%%%%%%%%%%%%%%%%%%%%%
-                                  %1       2          
-    align.xyzTargets =   [ [vision_xyzTargets(1:2);-0.080]     [vision_xyzTargets(1:2);-0.080]      [vision_xyzTargets(1:2);-0.300]    [0.500 vision_xyzTargets(2) -0.300]'  [0.500 vision_xyzTargets(2) -0.300]'    [0.500 0.1 -0.300]'       [vision_xyzTargets(1:2);-0.080]]; 
-    align.gripperforce = [-5                                  -5                                   -5                                 -5                                    -5                                      -5                        -1.1];    
-    align.control_time = [ 1.0                                 0.8                                  2.0                                2.0                                   0.8                                     5.0                       3.0]; 
-    align.rotMatTarget = [ vision_rotMatTarget                 vision_rotMatTarget                  vision_rotMatTarget                vision_rotMatTarget                   vision_rotMatTarget                     vision_rotMatTarget       vision_rotMatTarget];
-    align.IKinit =       [ 1                                   1                                    1                                  1                                     1                                       1                         1];
-    align.FT_trigger   = [ 0                                   0                                    3                                  1                                     0                                       2                         0];
-    align.desired_force= [ 0                                   0                                    27                                -7                                     0                                      -1.1                       0];
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-      
-    
-     
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if demo_case == 1
-            %%%%%%%% Ư����Ż ���輼���� pick&pushing&insert %%%%%%%%%%
-        xyzTargets =       [pick2.xyzTargets    pick3.xyzTargets     pick.xyzTargets     pushing2.xyzTargets     insert_end2.xyzTargets];
-        gripperforce =     [pick2.gripperforce  pick3.gripperforce   pick.gripperforce   pushing2.gripperforce   insert_end2.gripperforce];           
-        control_time =     [pick2.control_time  pick3.control_time   pick.control_time   pushing2.control_time   insert_end2.control_time];        
-        rotMatTarget_Set = [pick2.rotMatTarget  pick3.rotMatTarget   pick.rotMatTarget   pushing2.rotMatTarget   insert_end2.rotMatTarget]; 
-        IKinit =           [pick2.IKinit        pick3.IKinit         pick.IKinit         pushing2.IKinit         insert_end2.IKinit];
-        FT_trigger =       [pick2.FT_trigger    pick3.FT_trigger     pick.FT_trigger     pushing2.FT_trigger     insert_end2.FT_trigger];
-        desired_force =    [pick2.desired_force pick3.desired_force  pick.desired_force  pushing2.desired_force  insert_end2.desired_force];
+        xyzTargets =       [neutral.xyzTargets    toLbox.xyzTargets     pick_vision.xyzTargets     pushing_bed.xyzTargets     insert_bed.xyzTargets];
+        gripperforce =     [neutral.gripperforce  toLbox.gripperforce   pick_vision.gripperforce   pushing_bed.gripperforce   insert_bed.gripperforce];           
+        control_time =     [neutral.control_time  toLbox.control_time   pick_vision.control_time   pushing_bed.control_time   insert_bed.control_time];        
+        rotMatTarget_Set = [neutral.rotMatTarget  toLbox.rotMatTarget   pick_vision.rotMatTarget   pushing_bed.rotMatTarget   insert_bed.rotMatTarget]; 
+        IKinit =           [neutral.IKinit        toLbox.IKinit         pick_vision.IKinit         pushing_bed.IKinit         insert_bed.IKinit];
+        FT_trigger =       [neutral.FT_trigger    toLbox.FT_trigger     pick_vision.FT_trigger     pushing_bed.FT_trigger     insert_bed.FT_trigger];
+        desired_force =    [neutral.desired_force toLbox.desired_force  pick_vision.desired_force  pushing_bed.desired_force  insert_bed.desired_force];
+        for i = 1 : size(xyzTargets,2)          
+            rotMatTarget{i} = rotMatTarget_Set(:,3*i-2:3*i);          
+        end    
+        num_init_move = 2;
+        
+    elseif demo_case == 11
+        xyzTargets =       [insert_bed2.xyzTargets];
+        gripperforce =     [insert_bed2.gripperforce];           
+        control_time =     [insert_bed2.control_time];        
+        rotMatTarget_Set = [insert_bed2.rotMatTarget]; 
+        IKinit =           [insert_bed2.IKinit];
+        FT_trigger =       [insert_bed2.FT_trigger];
+        desired_force =    [insert_bed2.desired_force];
         for i = 1 : size(xyzTargets,2)          
             rotMatTarget{i} = rotMatTarget_Set(:,3*i-2:3*i);          
         end    
         num_init_move = 2;
     
     elseif demo_case == 2
-            %%%%%%%% Ư����Ż ���輼���� pick&pushing&insert %%%%%%%%%%
-        xyzTargets =       [pick3.xyzTargets     align.xyzTargets];
-        gripperforce =     [pick3.gripperforce   align.gripperforce];           
-        control_time =     [pick3.control_time   align.control_time];        
-        rotMatTarget_Set = [pick3.rotMatTarget   align.rotMatTarget]; 
-        IKinit =           [pick3.IKinit         align.IKinit];
-        FT_trigger =       [pick3.FT_trigger     align.FT_trigger];
-        desired_force =    [pick3.desired_force  align.desired_force];
+        xyzTargets =       [toLbox.xyzTargets     align_vision.xyzTargets];
+        gripperforce =     [toLbox.gripperforce   align_vision.gripperforce];           
+        control_time =     [toLbox.control_time   align_vision.control_time];        
+        rotMatTarget_Set = [toLbox.rotMatTarget   align_vision.rotMatTarget]; 
+        IKinit =           [toLbox.IKinit         align_vision.IKinit];
+        FT_trigger =       [toLbox.FT_trigger     align_vision.FT_trigger];
+        desired_force =    [toLbox.desired_force  align_vision.desired_force];
         for i = 1 : size(xyzTargets,2)          
             rotMatTarget{i} = rotMatTarget_Set(:,3*i-2:3*i);          
         end        
         num_init_move = 1;
+        
+    elseif demo_case == 3
+        xyzTargets =       [toRbox.xyzTargets     pickup.xyzTargets];
+        gripperforce =     [toRbox.gripperforce   pickup.gripperforce];           
+        control_time =     [toRbox.control_time   pickup.control_time];        
+        rotMatTarget_Set = [toRbox.rotMatTarget   pickup.rotMatTarget]; 
+        IKinit =           [toRbox.IKinit         pickup.IKinit];
+        FT_trigger =       [toRbox.FT_trigger     pickup.FT_trigger];
+        desired_force =    [toRbox.desired_force  pickup.desired_force];
+        for i = 1 : size(xyzTargets,2)          
+            rotMatTarget{i} = rotMatTarget_Set(:,3*i-2:3*i);          
+        end        
+        num_init_move = 1;
+        
+%     elseif demo_case == 4
+%         xyzTargets =       [toRbox.xyzTargets     pickup.xyzTargets      toLbox.xyzTargets       align_vision.xyzTargets];
+%         gripperforce =     [toRbox.gripperforce   pickup.gripperforce    toLbox.gripperforce     align_vision.gripperforce];           
+%         control_time =     [toRbox.control_time   pickup.control_time    toLbox.control_time     align_vision.control_time];        
+%         rotMatTarget_Set = [toRbox.rotMatTarget   pickup.rotMatTarget    toLbox.rotMatTarget     align_vision.rotMatTarget]; 
+%         IKinit =           [toRbox.IKinit         pickup.IKinit          toLbox.IKinit           align_vision.IKinit];
+%         FT_trigger =       [toRbox.FT_trigger     pickup.FT_trigger      toLbox.FT_trigger       align_vision.FT_trigger];
+%         desired_force =    [toRbox.desired_force  pickup.desired_force   toLbox.desired_force    align_vision.desired_force];
+%         for i = 1 : size(xyzTargets,2)          
+%             rotMatTarget{i} = rotMatTarget_Set(:,3*i-2:3*i);          
+%         end        
+%         num_init_move = 1;
     end    
     
     for i=1:length(xyzTargets(1,:))
@@ -152,6 +443,15 @@ function [posTargets, xyzTargets, rotMatTarget, control_time, gripperforce, FT_t
             posTargets(i,:) = kin.getIK( 'xyz', xyzTargets(:,i), ...
                                          'SO3', rotMatTarget{i}, ...
                                          'initial', initPosition_back );
+        elseif IKinit(i) == 2
+            posTargets(i,:) = kin.getIK( 'xyz', xyzTargets(:,i), ...
+                                         'SO3', rotMatTarget{i}, ...
+                                         'initial', initPosition_front2 );
+                                     
+         elseif IKinit(i) == -2
+            posTargets(i,:) = kin.getIK( 'xyz', xyzTargets(:,i), ...
+                                         'SO3', rotMatTarget{i}, ...
+                                         'initial', initPosition_back2 );
         end            
     end    
 end

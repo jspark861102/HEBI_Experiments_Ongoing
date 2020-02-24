@@ -9,6 +9,7 @@ function vision_Callback(~,message)
     fprintf("flag is on\n")
     flag = 1;
     
+%     vision_rotMatTarget = R_x(pi)*R_y(-pi/6);
     vision_xyzTargets = [message.Position.X message.Position.Y message.Position.Z]';
     vision_rotMatTarget = quat2rotm([message.Orientation.X message.Orientation.Y message.Orientation.Z message.Orientation.W]);
 %     position = [message.Position.X message.Position.Y message.Position.Z];

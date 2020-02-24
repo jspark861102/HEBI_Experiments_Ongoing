@@ -1,24 +1,29 @@
 %%
-clear *;
-close all;
-clc
+% clear *;
+% close all;
+% clc
 
 %% ROS initialization
-masterHost = 'localhost';
-Matlab_node = robotics.ros.Node('Matlab_node', masterHost);
-request_pub = robotics.ros.Publisher(Matlab_node,'/request', 'std_msgs/Int32');
-posemsg_Sub = robotics.ros.Subscriber(Matlab_node,'/pose','geometry_msgs/Pose', @vision_Callback);
-requestmsg = rosmessage(request_pub);
+% masterHost = 'localhost';
+% Matlab_node = robotics.ros.Node('Matlab_node', masterHost);
+% request_pub = robotics.ros.Publisher(Matlab_node,'/request', 'std_msgs/Int32');
+% posemsg_Sub = robotics.ros.Subscriber(Matlab_node,'/pose','geometry_msgs/Pose', @vision_Callback);
+% requestmsg = rosmessage(request_pub);
 global vision_xyzTargets; 
 global vision_rotMatTarget; 
 global flag;
-vision_xyzTargets = [0.285 -0.265 -0.185]'; %initial value
-vision_rotMatTarget = R_x(pi);
+
+% vision_xyzTargets = [0.285 -0.265 -0.185]'; %initial value
+% vision_rotMatTarget = R_x(pi);
+
+vision_xyzTargets = [0.315 -0.180 -0.185]'; %initial value
+vision_rotMatTarget =  R_x(pi)*R_z(pi*3/4);
+
 flag = 0;
 
 %% setting parmaeters
 %1: pushing&place, 2:align
-demo_case = 1;
+demo_case = 11;
 
 %controlmode = 1 : cartesian space control
 %controlmode = 2 : joint pace control
@@ -31,22 +36,26 @@ gravitysetting = 1;
 % force control smooting
 smoothing_duration = 0.2; % sec
 
+%% object parameters
+object_case = 1; 
+global l;
+global D;
+%bushing1
+l = 0.068;
+D = 0.034;
+
 %% HEBI setting
-HebiLookup.initialize();
-[kin,gains,trajGen,group,cmd,grippergroup,grippercmd] = HEBI_Arm_Initialize;
+% HebiLookup.initialize();
+% [kin,gains,trajGen,group,cmd,grippergroup,grippercmd] = HEBI_Arm_Initialize;
+
 % group.startLog('dir','logs');
            
 %% Target Waypoints      
-% Inverse Kinematics initial position
-initPosition_front = [ 0   pi/4 pi/2 pi/4 -pi pi/2 ];  % [rad]
-initPosition_back =  [ -pi pi/4 pi/2 pi/4 -pi pi/2 ];  % [rad]
-[posTargets, xyzTargets, rotMatTarget, control_time, gripperforce, FT_trigger, desired_force, num_init_move, IKinit] = TargetWaypoints_BushingTestbed_vision(demo_case, kin, initPosition_front, initPosition_back);
+% [posTargets, xyzTargets, rotMatTarget, control_time, gripperforce, FT_trigger, desired_force, num_init_move, IKinit] = TargetWaypoints_BushingTestbed_vision(demo_case, kin, initPosition_front, initPosition_back);
+[posTargets, xyzTargets, rotMatTarget, control_time, gripperforce, FT_trigger, desired_force, num_init_move, IKinit] = TargetWaypoints_BushingTestbed_vision(object_case, demo_case, kin);
            
 %% gravity direction
 [gravityVec] = HEBI_Arm_gravity(gravitysetting);
-
-%% holdeffect setting
-stiffness = 10 * ones(1,kin.getNumDoF());
 
 %% log data setting
 poscmdlog = [];posfbklog = [];
@@ -58,7 +67,7 @@ for iter=1:1
 
 %%%%%%%%%%%%%%%%%%%%% go from here to first waypoint %%%%%%%%%%%%%%%%%%%%
 %control setting
-fbk = group.getNextFeedbackFull(); %�ʱ��ڼ� ����
+fbk = group.getNextFeedbackFull();
 fbk_gripper = grippergroup.getNextFeedbackFull();
 
 waypoints = [ fbk.position;
@@ -88,7 +97,6 @@ while t < trajectory.getDuration
     cmd.effort = Tm;    
     group.send(cmd);    
     
-    % �׸��� ����        
     grippercmd.position = [];
     grippercmd.velocity = [];
     grippercmd.effort = gripperforce(1);    
@@ -104,28 +112,28 @@ for i=1:num_init_move
     t0 = fbk.time;
     t = 0;
     while t < trajectory.getDuration
-        if i == num_init_move
-            t
-            if t == 0    
-                requestmsg.Data = 1;
-                disp('request is published')
-                send(request_pub,requestmsg) %send하면 /pose 값이 돌아고고, vision_callback이 실행됨.
-            end
-            pause(0.1) % subscribe signal waiting
-            if flag == 1
-                disp('vision obtained')
-                flag = 0;
-                vision_xyzTargets
-                vision_rotMatTarget
-                
-                %update target position
-                [posTargets, xyzTargets, rotMatTarget, control_time, gripperforce, FT_trigger, desired_force, num_init_move, IKinit] = TargetWaypoints_BushingTestbed_vision(demo_case, kin, initPosition_front, initPosition_back);
-                
-                break
-            else
-                disp('not yet')
-            end
-        end
+%         if i == num_init_move
+%             t
+%             if t == 0    
+%                 requestmsg.Data = 1;
+%                 disp('request is published')
+%                 send(request_pub,requestmsg) %With send, /pose is returned, vision_callback is executed.
+%             end
+%             pause(0.1) % subscribe signal waiting
+%             if flag == 1
+%                 disp('vision obtained')
+%                 flag = 0;
+%                 vision_xyzTargets
+%                 vision_rotMatTarget
+%                 
+%                 %update target position
+%                 [posTargets, xyzTargets, rotMatTarget, control_time, gripperforce, FT_trigger, desired_force, num_init_move, IKinit] = TargetWaypoints_BushingTestbed_vision(demo_case, kin, initPosition_front, initPosition_back);
+%                 
+%                 break
+%             else
+%                 disp('not yet')
+%             end
+%         end
 
         % Get feedback and update the timer
         fbk = group.getNextFeedbackFull();
@@ -147,7 +155,6 @@ for i=1:num_init_move
         cmd.effort = Tm;    
         group.send(cmd);    
 
-        % �׸��� ����        
         grippercmd.position = [];
         grippercmd.velocity = [];
         grippercmd.effort = gripperforce(i+1);    
@@ -158,12 +165,12 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% go next waypoints %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %initial condition
-ControlSwitch = [0 0 0 0 0 0]; % �ʱⰪ, ��ġ����� ����
-Xe = [xyzTargets(:,1);pi;0;0]'; %Xe �ʱⰪ�� ���� ������ �Ϻ��� ���� �ƴٴ� �����Ͽ� ����
-Xd = [xyzTargets(:,1);pi;0;0]'; %cartesian space control�� ���� xd�ʱⰪ
+ControlSwitch = [0 0 0 0 0 0]; 
+Xe = [xyzTargets(:,1);pi;0;0]'; 
+Xd = [xyzTargets(:,1);pi;0;0]'; 
 for i=num_init_move+1:size(posTargets,1)-1     
 
-    if any(ControlSwitch) %���� while������ ����� �۵��Ǿ��ٸ�
+    if any(ControlSwitch) 
         waypoints = [ fbk.position ;
                       posTargets(i+1,:) ];
     else        
@@ -175,7 +182,7 @@ for i=num_init_move+1:size(posTargets,1)-1
     t0 = fbk.time;
     t = 0; pre_t = 0; 
     desired_force_array = zeros(1,6); 
-    ControlSwitch = [0 0 0 0 0 0]; % ���� target���� �̵��� ���� �׻� ��ġ����� ����  
+    ControlSwitch = [0 0 0 0 0 0];   
     smoothing_factor = 1;
     is_newwaypoint = 0;
     while t < trajectory.getDuration
@@ -192,7 +199,6 @@ for i=num_init_move+1:size(posTargets,1)-1
         J = kin.getJacobian('endeffector',fbk.position);
         
         %get endeffector position%velocity
-        %������ joint position���κ��� cartesian position�� �ٷ� �˼������� ������ API�� ����.
         dt = 1/group.getFeedbackFrequency;
         Ve = (J * fbk.velocity')';
 %         Xe = Xe + Ve * dt;
@@ -237,7 +243,6 @@ for i=num_init_move+1:size(posTargets,1)-1
             is_newwaypoint = 0;
         end            
         [pos,vel,acc] = trajectory.getState(t);
-
         
         % Account for external efforts due to the gas spring
         effortOffset = [0 -7.5+2.26*(fbk.position(2) - 0.72) 0 0 0 0];
@@ -250,21 +255,22 @@ for i=num_init_move+1:size(posTargets,1)-1
         Fc_force = (([0 2.0 0 0 0 0].*(Fe - desired_force_array.*[1 smoothing_factor 1 1 1 1])) - Fe).*ControlSwitch; 
         Tc_force = (J' * Fc_force')';% - gains.positionKp.*(fbk.position - pos)*any(ControlSwitch);
                
-        if any(ControlSwitch) %�������� ���      
-            Xd = Xd .* ([1 1 1 1 1 1] - ControlSwitch) + Xe .* ControlSwitch; % ������� ��ġ����� ����ġ �ɶ� Ƣ�� ���� ������, ������� Xe->Xd�� �������� �����Ƿ�, ���� ��ġ�� Xd�� �ٸ� ���� �����Ƿ� ���� �ʿ�
-            Vd = Vd .* ([1 1 1 1 1 1] - ControlSwitch) + Ve .* ControlSwitch; % ������� ��ġ����� ����ġ �ɶ� Ƣ�� ���� ������
-        else %��ġ������ ���
-            Jd = kin.getJacobian('endeffector',pos); %pos�� feedback pos�ƴ�, desired pos
+        if any(ControlSwitch)       
+            Xd = Xd .* ([1 1 1 1 1 1] - ControlSwitch) + Xe .* ControlSwitch; 
+            Vd = Vd .* ([1 1 1 1 1 1] - ControlSwitch) + Ve .* ControlSwitch; 
+        else 
+            Jd = kin.getJacobian('endeffector',pos); 
             Vd = (Jd * vel')';
 %             Xd = Xd + Vd * dt;
             Xd = Xd + Vd * real_dt;
 
         end   
+        
         ePgain = [100 100 150 9 9 6];
 %         ePgain = [100 100 5 9 9 6];
         eVgain = [0.1 0.1 0.1 0.1 0.1 0.1]; 
-        Fc_pos = -ePgain .* (Xe - (Xd + [0 0 0.00 0 0 0])) - eVgain .* (Ve - Vd); % ���Ƿ� Xd �ٲ� ���� ���� �ʿ�
-        Fc_pos = Fc_pos .* ([1 1 1 1 1 1] - ControlSwitch); %������ ���� ��ġ��� 0���� ����
+        Fc_pos = -ePgain .* (Xe - (Xd + [0 0 0 0 0 0])) - eVgain .* (Ve - Vd); 
+        Fc_pos = Fc_pos .* ([1 1 1 1 1 1] - ControlSwitch); 
         Tc_pos = (J' * Fc_pos')'*any(ControlSwitch);      
 %         Tc_pos = (J' * Fc_pos')'*any(FT_trigger(i+1));        
 
@@ -274,7 +280,6 @@ for i=num_init_move+1:size(posTargets,1)-1
         cmd.effort = Tm + Tc_force + Tc_pos;        
         group.send(cmd);   
         
-        % �׸��� ����        
         grippercmd.position = [];
         grippercmd.velocity = [];
         grippercmd.effort = gripperforce(i+1); 
