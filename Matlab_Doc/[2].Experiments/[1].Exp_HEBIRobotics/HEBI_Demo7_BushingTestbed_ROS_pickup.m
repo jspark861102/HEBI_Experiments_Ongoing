@@ -3,29 +3,38 @@ clear *;
 close all;
 clc
 
+%% ROS for vision
+%1:use, 0:not use
+isROS = 1;
+
 %% ROS initialization
-% masterHost = 'localhost';
-% Matlab_node = robotics.ros.Node('Matlab_node', masterHost);
-% request_pub = robotics.ros.Publisher(Matlab_node,'/request', 'std_msgs/Int32');
-% posemsg_Sub = robotics.ros.Subscriber(Matlab_node,'/pose','geometry_msgs/Pose', @vision_Callback);
-% requestmsg = rosmessage(request_pub);
-global vision_xyzTargets; 
-global vision_rotMatTarget; 
-global flag;
-% vision_xyzTargets = [0.285 -0.265 -0.185]'; %initial value
-% vision_rotMatTarget = R_x(pi);
+if isROS == 1
+%     masterHost = 'localhost';
+    masterHost = 'http://192.168.0.48:11311';
+    Matlab_node = robotics.ros.Node('Matlab_node', masterHost);
+    request_pub = robotics.ros.Publisher(Matlab_node,'/requestfrommatlab', 'std_msgs/Int32');
+    posemsg_Sub = robotics.ros.Subscriber(Matlab_node,'/pose','geometry_msgs/Pose', @vision_Callback);
+    requestmsg = rosmessage(request_pub);
 
-vision_xyzTargets = [0.315 -0.180 -0.185]'; %initial value
-vision_rotMatTarget =  R_x(pi)*R_z(pi*3/4);
+    global vision_xyzTargets; 
+    global vision_rotMatTarget; 
+    global flag;
 
-flag = 0;
+    vision_xyzTargets   = [0.285 0.270 -0.266]'; 
+    vision_rotMatTarget = R_x(pi)*R_y(pi/10);
+    flag = 0;
+end
 
 %% setting parmaeters
-%1:bushing#1, 2:bushing#2, 3:bushing#3, 4:bushing#4, 5:aluminum case, 6:water bottle, 7:box tape, 8:thin plastic case 
+%1:bushing#1,5:cookie can, 6:water bottle, 9:medicine bottle, 10:plastic cup, 11:mounting rail, 12:wiring duct 
 object_case = 1;
 
-%1: pushing&place, 2:align, 3:pickup
-demo_case = 3;
+%3:pickup
+if isROS == 1
+    demo_case = 33;
+else
+    demo_case = 3;   
+end
 
 %controlmode = 1 : cartesian space control
 %controlmode = 2 : joint pace control
@@ -45,48 +54,28 @@ if object_case == 1
     %bushing1
     l = 0.068;
     D = 0.034;
-elseif object_case == 2 
-    %bushing2
-    l = 0.060;
-    D = 0.060;
-elseif object_case == 3 
-    %bushing3
-    l = 0.030;
-    D = 0.060;
-elseif object_case == 4 
-    %bushing4
-    l = 0.040;
-    D = 0.032;
 elseif object_case == 5 
-    %aluminum case
+    %cookie can
     l = 0.160;
     D = 0.066;
 elseif object_case == 6 
     %water bottle
     l = 0.161;
     D = 0.030;
-elseif object_case == 7
-    %box tape
-    l = 0.048;
-    D = 0.098;
-elseif object_case == 8
-    %thin plastic case
-    l = 0.146;
-    D = 0.027;
 elseif object_case == 9
-    %drug bottle
+    %medicine bottle
     l = 0.083;
     D = 0.035;
 elseif object_case == 10
-    %milk bottle
+    %plastic cup
     l = 0.073;
     D = 0.048;
 elseif object_case == 11
-    %thin zig
+    %mounting rail
     l = 0.0827;
     D = 0.0076;
 elseif object_case == 12
-    %wire zig
+    %wiring duct
     l = 0.122;
     D = 0.060;
 end
@@ -98,7 +87,7 @@ HebiLookup.initialize();
            
 %% Target Waypoints 
 [posTargets, xyzTargets, rotMatTarget, control_time, gripperforce, FT_trigger, desired_force, num_init_move, IKinit] = TargetWaypoints_BushingTestbed_vision(object_case, demo_case, kin);
-
+    
 %% gravity direction
 [gravityVec] = HEBI_Arm_gravity(gravitysetting);
 
@@ -108,7 +97,30 @@ Telog = [];Felog = [];deflectionlog = [];Tc_poslog = [];Fc_poslog = [];Tc_forcel
 ControlSwitchlog = []; Xelog = []; Velog = []; Xdlog = []; Vdlog = [];T_gripperlog = [];smoothing_factorlog = [];Fmlog = [];
 %% trajectory & control
 real_dt_set=[];
-for iter=1:1
+for iter=1:1        
+    if i == num_init_move
+        t
+        if t == 0    
+            requestmsg.Data = 1;
+            disp('request is published')
+            send(request_pub,requestmsg) %With send, /pose is returned, vision_callback is executed.
+        end
+        pause(0.1) % subscribe signal waiting
+        if flag == 1
+            disp('vision obtained')
+            flag = 0;
+            vision_xyzTargets
+            vision_rotMatTarget
+            
+            %update target position
+            [posTargets, xyzTargets, rotMatTarget, control_time, gripperforce, FT_trigger, desired_force, num_init_move, IKinit] = TargetWaypoints_BushingTestbed_vision(demo_case, kin, initPosition_front, initPosition_back);
+
+            break
+        else
+            disp('not yet')
+        end
+    end
+
 
 %%%%%%%%%%%%%%%%%%%%% go from here to first waypoint %%%%%%%%%%%%%%%%%%%%
 %control setting
@@ -157,28 +169,28 @@ for i=1:num_init_move
     t0 = fbk.time;
     t = 0;
     while t < trajectory.getDuration
-%         if i == num_init_move
-%             t
-%             if t == 0    
-%                 requestmsg.Data = 1;
-%                 disp('request is published')
-%                 send(request_pub,requestmsg) %With send, /pose is returned, vision_callback is executed.
-%             end
-%             pause(0.1) % subscribe signal waiting
-%             if flag == 1
-%                 disp('vision obtained')
-%                 flag = 0;
-%                 vision_xyzTargets
-%                 vision_rotMatTarget
-%                 
-%                 %update target position
-%                 [posTargets, xyzTargets, rotMatTarget, control_time, gripperforce, FT_trigger, desired_force, num_init_move, IKinit] = TargetWaypoints_BushingTestbed_vision(demo_case, kin, initPosition_front, initPosition_back);
-%                 
-%                 break
-%             else
-%                 disp('not yet')
-%             end
-%         end
+        if i == num_init_move
+            t
+            if t == 0    
+                requestmsg.Data = 1;
+                disp('request is published')
+                send(request_pub,requestmsg) %With send, /pose is returned, vision_callback is executed.
+            end
+            pause(0.1) % subscribe signal waiting
+            if flag == 1
+                disp('vision obtained')
+                flag = 0;
+                vision_xyzTargets
+                vision_rotMatTarget
+                
+                %update target position
+                [posTargets, xyzTargets, rotMatTarget, control_time, gripperforce, FT_trigger, desired_force, num_init_move, IKinit] = TargetWaypoints_BushingTestbed_vision(object_case, demo_case, kin);
+                
+                break
+            else
+                disp('not yet')
+            end
+        end
 
         % Get feedback and update the timer
         fbk = group.getNextFeedbackFull();

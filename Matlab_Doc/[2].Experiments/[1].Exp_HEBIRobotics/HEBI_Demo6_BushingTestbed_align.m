@@ -3,27 +3,9 @@
 % close all;
 % clc
 
-%% ROS initialization
-% masterHost = 'localhost';
-% Matlab_node = robotics.ros.Node('Matlab_node', masterHost);
-% request_pub = robotics.ros.Publisher(Matlab_node,'/request', 'std_msgs/Int32');
-% posemsg_Sub = robotics.ros.Subscriber(Matlab_node,'/pose','geometry_msgs/Pose', @vision_Callback);
-% requestmsg = rosmessage(request_pub);
-global vision_xyzTargets; 
-global vision_rotMatTarget; 
-global flag;
-
-% vision_xyzTargets = [0.285 -0.265 -0.185]'; %initial value
-% vision_rotMatTarget = R_x(pi);
-
-vision_xyzTargets = [0.315 -0.180 -0.185]'; %initial value
-vision_rotMatTarget =  R_x(pi)*R_z(pi*3/4);
-
-flag = 0;
-
 %% setting parmaeters
-%1: pushing&place, 2:align
-demo_case = 11;
+%2:align
+demo_case = 2;
 
 %controlmode = 1 : cartesian space control
 %controlmode = 2 : joint pace control
@@ -38,11 +20,6 @@ smoothing_duration = 0.2; % sec
 
 %% object parameters
 object_case = 1; 
-global l;
-global D;
-%bushing1
-l = 0.068;
-D = 0.034;
 
 %% HEBI setting
 % HebiLookup.initialize();
@@ -50,10 +27,14 @@ D = 0.034;
 
 % group.startLog('dir','logs');
            
-%% Target Waypoints      
-% [posTargets, xyzTargets, rotMatTarget, control_time, gripperforce, FT_trigger, desired_force, num_init_move, IKinit] = TargetWaypoints_BushingTestbed_vision(demo_case, kin, initPosition_front, initPosition_back);
+%% Target Waypoints    
+% Inverse Kinematics initial position
+initPosition_front  = [  0   pi/4 pi/2 pi/4 -pi   pi/2 ];  % [rad]
+initPosition_back   = [ -pi  pi/4 pi/2 pi/4 -pi   pi/2 ];  % [rad]
+initPosition_front2 = [  0   pi/4 pi/2 pi/4 -pi   pi ];  % [rad]
+initPosition_back2  = [ -pi  pi/4 pi/2 pi/4 -pi/2 pi ];  % [rad]
 [posTargets, xyzTargets, rotMatTarget, control_time, gripperforce, FT_trigger, desired_force, num_init_move, IKinit] = TargetWaypoints_BushingTestbed_vision(object_case, demo_case, kin);
-           
+
 %% gravity direction
 [gravityVec] = HEBI_Arm_gravity(gravitysetting);
 
@@ -67,7 +48,7 @@ for iter=1:1
 
 %%%%%%%%%%%%%%%%%%%%% go from here to first waypoint %%%%%%%%%%%%%%%%%%%%
 %control setting
-fbk = group.getNextFeedbackFull();
+fbk = group.getNextFeedbackFull(); 
 fbk_gripper = grippergroup.getNextFeedbackFull();
 
 waypoints = [ fbk.position;
@@ -112,28 +93,6 @@ for i=1:num_init_move
     t0 = fbk.time;
     t = 0;
     while t < trajectory.getDuration
-%         if i == num_init_move
-%             t
-%             if t == 0    
-%                 requestmsg.Data = 1;
-%                 disp('request is published')
-%                 send(request_pub,requestmsg) %With send, /pose is returned, vision_callback is executed.
-%             end
-%             pause(0.1) % subscribe signal waiting
-%             if flag == 1
-%                 disp('vision obtained')
-%                 flag = 0;
-%                 vision_xyzTargets
-%                 vision_rotMatTarget
-%                 
-%                 %update target position
-%                 [posTargets, xyzTargets, rotMatTarget, control_time, gripperforce, FT_trigger, desired_force, num_init_move, IKinit] = TargetWaypoints_BushingTestbed_vision(demo_case, kin, initPosition_front, initPosition_back);
-%                 
-%                 break
-%             else
-%                 disp('not yet')
-%             end
-%         end
 
         % Get feedback and update the timer
         fbk = group.getNextFeedbackFull();
@@ -165,20 +124,72 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% go next waypoints %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %initial condition
-ControlSwitch = [0 0 0 0 0 0]; 
+ControlSwitch = [0 0 0 0 0 0];
 Xe = [xyzTargets(:,1);pi;0;0]'; 
-Xd = [xyzTargets(:,1);pi;0;0]'; 
-for i=num_init_move+1:size(posTargets,1)-1     
-
-    if any(ControlSwitch) 
-        waypoints = [ fbk.position ;
-                      posTargets(i+1,:) ];
-    else        
-        waypoints = [ posTargets(i,:) ;
-                      posTargets(i+1,:) ];
-    end  
+Xd = [xyzTargets(:,1);pi;0;0]';
+% align_xyzTargets = vision_xyzTargets; 
+align_xyzTargets = xyzTargets; 
+for i=num_init_move+1:size(posTargets,1)-1   
     
-    trajectory = trajGen.newJointMove( waypoints, 'time', [0 control_time(i+1)]);
+%     if any(ControlSwitch) 
+%         waypoints = [ fbk.position ;
+%                       posTargets(i+1,:) ];
+%     else        
+%         waypoints = [ posTargets(i,:) ;
+%                       posTargets(i+1,:) ];
+%     end  
+%     
+%     trajectory = trajGen.newJointMove( waypoints, 'time', [0 control_time(i+1)]);
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%% modified code for align %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if i == num_init_move+1+2 %force contact through z axis
+        align_xyzTargets(:,i+1) = [xyzTargets(1,i+1); xyzTargets(2,i+1); -0.3];
+    elseif i == num_init_move+1+2+1 %force contact through x axis
+        align_xyzTargets(:,i+1) = [0.5; Xe(1,2); Xe(1,3)+0.01];
+    elseif i ==  num_init_move+1+2+2 %move back to -x axis
+        align_xyzTargets(:,i+1) = [Xe(1,1) - 0.015; Xe(1,2); Xe(1,3)];
+    elseif i ==  num_init_move+1+2+3 %force contact through y axis
+        align_xyzTargets(:,i+1) = [Xe(1,1) - 0.01; 0.1; Xe(1,3)];
+    elseif  i ==  num_init_move+1+2+4 %pause not to disturb bushing
+        align_xyzTargets(:,i+1) = [Xe(1,1)+0.01; Xe(1,2)+0.00; Xe(1,3)];
+    elseif  i ==  num_init_move+1+2+5 %go up for bushing length with pushing
+        align_xyzTargets(:,i+1) = [Xe(1,1)+0.03; Xe(1,2)+0.03; Xe(1,3)+0.06];
+    elseif  i ==  num_init_move+1+2+6 %go up to air
+        align_xyzTargets(:,i+1) = [Xe(1,1); Xe(1,2); -0.08];
+    end       
+    if IKinit(i+1) == 1
+        newposTarget = kin.getIK( 'xyz', align_xyzTargets(:,i+1), ...
+                                  'SO3', rotMatTarget{i+1}, ...
+                                  'initial', initPosition_front );
+    elseif IKinit(i+1) == -1
+        newposTarget = kin.getIK( 'xyz', align_xyzTargets(:,i+1), ...
+                                  'SO3', rotMatTarget{i+1}, ...
+                                  'initial', initPosition_back );
+                              
+    elseif IKinit(i+1) == 2
+        newposTarget = kin.getIK( 'xyz', align_xyzTargets(:,i+1), ...
+                                  'SO3', rotMatTarget{i+1}, ...
+                                  'initial', initPosition_front2 );
+    elseif IKinit(i+1) == -2
+        newposTarget = kin.getIK( 'xyz', align_xyzTargets(:,i+1), ...
+                                  'SO3', rotMatTarget{i+1}, ...
+                                  'initial', initPosition_back2 );
+    end
+    if i > num_init_move+1+2 
+        waypoints = [ fbk.position ;
+                      newposTarget ];        
+    else
+        waypoints = [ posTargets(i,:) ;
+                      posTargets(i+1,:)];
+    end
+    if i > num_init_move+1+2+4  
+%         trajectory = trajGen.newLinearMove( waypoints, 'duration', control_time(i+1));
+        trajectory = trajGen.newJointMove( waypoints, 'time', [0 control_time(i+1)]);
+    else
+        trajectory = trajGen.newJointMove( waypoints, 'time', [0 control_time(i+1)]);
+    end
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
     t0 = fbk.time;
     t = 0; pre_t = 0; 
     desired_force_array = zeros(1,6); 
@@ -217,8 +228,18 @@ for i=num_init_move+1:size(posTargets,1)-1
                        ControlSwitch(i_switch) = 1;
                        is_newwaypoint = 1;
                        fprintf("force control position is %d \n",i_switch);
-                       desired_force_array      
+                       desired_force_array
                        ControlSwitch
+                       
+                       %%%%%% additional code for align %%%%%%
+                       dumy = real_dt_set; 
+                       real_dt_set = [];
+                       real_dt_set = dumy(:,1:end-1);
+                       fprintf("force control time is %.4f \n",t);
+                       fprintf("%d th waypoint \n",i);
+                       disp('%%%%%%%%%%%%%%%%%%%%%%%%%')
+                       break;
+                       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%                       
                     end
                 elseif desired_force(i+1) < 0 
                     if Fe(i_switch) <= desired_force(i+1)
@@ -227,6 +248,16 @@ for i=num_init_move+1:size(posTargets,1)-1
                        fprintf("force control position is %d \n",i_switch);
                        desired_force_array  
                        ControlSwitch
+                       
+                       %%%%%% additional code for align %%%%%%
+                       dumy = real_dt_set; 
+                       real_dt_set = [];
+                       real_dt_set = dumy(:,1:end-1);
+                       fprintf("force control time is %.4f \n",t);
+                       fprintf("%d th waypoint \n",i);
+                       disp('%%%%%%%%%%%%%%%%%%%%%%%%%')
+                       break;
+                       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                     end
                 end                        
             end
@@ -234,16 +265,16 @@ for i=num_init_move+1:size(posTargets,1)-1
                 smoothing_factor = 1/smoothing_duration * (trajectory.getDuration - t);
 %                 smoothing_factor = 1;   
             end            
-        end    
+        end
         
         if is_newwaypoint == 1                                    
             newwaypoint = [ fbk.position ;
                           fbk.position ];
             trajectory = trajGen.newJointMove( newwaypoint, 'time', [0 control_time(i+1)]);
             is_newwaypoint = 0;
-        end            
+        end    
         [pos,vel,acc] = trajectory.getState(t);
-        
+                
         % Account for external efforts due to the gas spring
         effortOffset = [0 -7.5+2.26*(fbk.position(2) - 0.72) 0 0 0 0];
 
@@ -252,7 +283,8 @@ for i=num_init_move+1:size(posTargets,1)-1
                                                         pos, vel, acc);   
         Tm = dynamicCompEfforts + gravCompEfforts + effortOffset;   
         
-        Fc_force = (([0 2.0 0 0 0 0].*(Fe - desired_force_array.*[1 smoothing_factor 1 1 1 1])) - Fe).*ControlSwitch; 
+        %for align, force control gain is modified, smoothing_factor is negelected
+        Fc_force = (([0.5 0.5 0.5 0 0 0].*(Fe - desired_force_array.*[1 1 1 1 1 1])) - Fe).*ControlSwitch; 
         Tc_force = (J' * Fc_force')';% - gains.positionKp.*(fbk.position - pos)*any(ControlSwitch);
                
         if any(ControlSwitch)       
@@ -264,10 +296,13 @@ for i=num_init_move+1:size(posTargets,1)-1
 %             Xd = Xd + Vd * dt;
             Xd = Xd + Vd * real_dt;
 
-        end   
+        end
         
-        ePgain = [100 100 150 9 9 6];
-%         ePgain = [100 100 5 9 9 6];
+        %for align, position gain is modified
+        ePgain = [20 20 5 9 9 6];
+%         ePgain = [100 100 150 9 9 6];
+%         ePgain = [80 80 130 20 20 16];
+%         ePgain = [100 100 5 9 9 6];        
         eVgain = [0.1 0.1 0.1 0.1 0.1 0.1]; 
         Fc_pos = -ePgain .* (Xe - (Xd + [0 0 0 0 0 0])) - eVgain .* (Ve - Vd); 
         Fc_pos = Fc_pos .* ([1 1 1 1 1 1] - ControlSwitch); 

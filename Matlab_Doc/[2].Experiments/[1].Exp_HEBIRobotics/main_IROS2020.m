@@ -2,9 +2,9 @@ clear all
 close all
 clc
 
-% %% alignment
+%% alignment
 % HEBI_Demo7_BushingTestbed_ROS_pickup;
-% HEBI_Demo6_BushingTestbed_ROS_align;
+% HEBI_Demo6_BushingTestbed_align;
 % % clear *;
 % % close all;
 % % clc 
@@ -13,9 +13,8 @@ clc
 
 
 %% placing
-%neutral!!!!!!!!!!!!1
 HEBI_Demo7_BushingTestbed_ROS_pickup;
-HEBI_Demo5_BushingTestbed_ROS;
+HEBI_Demo5_BushingTestbed_insert;
 % % clear *;
 % % close all;
 % % clc 
